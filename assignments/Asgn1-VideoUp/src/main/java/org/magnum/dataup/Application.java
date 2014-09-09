@@ -19,6 +19,7 @@ package org.magnum.dataup;
 
 import javax.servlet.MultipartConfigElement;
 
+import org.magnum.dataup.repo.VideoRepo;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.context.embedded.MultiPartConfigFactory;
@@ -61,5 +62,8 @@ public class Application {
 		// Return the configuration to setup multipart in the container
 		return factory.createMultipartConfig();
 	}
-
+    @Bean
+    public VideoRepo videos(){
+        return new VideoRepo();
+    }
 }
