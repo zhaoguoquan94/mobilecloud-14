@@ -1,4 +1,3 @@
-package org.magnum.mobilecloud.integration.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -13,7 +12,6 @@ import java.util.Set;
 
 import org.apache.http.HttpStatus;
 import org.junit.Test;
-import org.magnum.mobilecloud.video.TestData;
 import org.magnum.mobilecloud.video.client.SecuredRestBuilder;
 import org.magnum.mobilecloud.video.client.VideoSvcApi;
 import org.magnum.mobilecloud.video.repository.Video;
@@ -23,7 +21,7 @@ import retrofit.RestAdapter;
 import retrofit.RestAdapter.LogLevel;
 import retrofit.RetrofitError;
 import retrofit.client.ApacheClient;
-
+import org.magnum.mobilecloud.video.TestData;
 /**
  * A test for the Asgn2 video service
  * 
@@ -54,7 +52,7 @@ public class AutoGradingTest {
 	private final String CLIENT_ID = "mobile";
 
 	private VideoSvcApi readWriteVideoSvcUser1 = new SecuredRestBuilder()
-			.setClient(new ApacheClient(UnsafeHttpsClient.createUnsafeClient()))
+			.setClient(new ApacheClient(org.magnum.mobilecloud.integration.test.UnsafeHttpsClient.createUnsafeClient()))
 			.setEndpoint(TEST_URL)
 			.setLoginEndpoint(TEST_URL + VideoSvcApi.TOKEN_PATH)
 			// .setLogLevel(LogLevel.FULL)
@@ -62,7 +60,7 @@ public class AutoGradingTest {
 			.build().create(VideoSvcApi.class);
 
 	private VideoSvcApi readWriteVideoSvcUser2 = new SecuredRestBuilder()
-			.setClient(new ApacheClient(UnsafeHttpsClient.createUnsafeClient()))
+			.setClient(new ApacheClient(org.magnum.mobilecloud.integration.test.UnsafeHttpsClient.createUnsafeClient()))
 			.setEndpoint(TEST_URL)
 			.setLoginEndpoint(TEST_URL + VideoSvcApi.TOKEN_PATH)
 			// .setLogLevel(LogLevel.FULL)
@@ -129,7 +127,7 @@ public class AutoGradingTest {
 		// to use OAuth.
 		VideoSvcApi insecurevideoService = new RestAdapter.Builder()
 				.setClient(
-						new ApacheClient(UnsafeHttpsClient.createUnsafeClient()))
+						new ApacheClient(org.magnum.mobilecloud.integration.test.UnsafeHttpsClient.createUnsafeClient()))
 				.setEndpoint(TEST_URL).setLogLevel(LogLevel.FULL)
 				.setErrorHandler(error).build().create(VideoSvcApi.class);
 		try {

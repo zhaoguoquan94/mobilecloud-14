@@ -4,7 +4,8 @@
  **
  ** 
  */
-package org.magnum.mobilecloud.video.oauth;
+
+package org.magnum.mobilecloud.video.auth;
 
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -19,7 +20,6 @@ import org.springframework.security.oauth2.provider.client.ClientDetailsUserDeta
  * into a single object.
  *
  * @author jules
- *
  */
 public class ClientAndUserDetailsService implements UserDetailsService,
         ClientDetailsService {
@@ -48,9 +48,9 @@ public class ClientAndUserDetailsService implements UserDetailsService,
     public UserDetails loadUserByUsername(String username)
             throws UsernameNotFoundException {
         UserDetails user = null;
-        try{
+        try {
             user = users_.loadUserByUsername(username);
-        }catch(UsernameNotFoundException e){
+        } catch (UsernameNotFoundException e) {
             user = clientDetailsWrapper_.loadUserByUsername(username);
         }
         return user;

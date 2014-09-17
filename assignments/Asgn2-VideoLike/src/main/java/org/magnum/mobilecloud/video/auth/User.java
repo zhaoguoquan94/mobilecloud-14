@@ -4,33 +4,28 @@
  **
  ** 
  */
-package org.magnum.mobilecloud.video.oauth;
 
-import java.util.Collection;
-import java.util.Collections;
+package org.magnum.mobilecloud.video.auth;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UserDetails;
 
-public class User implements UserDetails {
+import java.util.Collection;
+import java.util.Collections;
 
-    public static UserDetails create(String username, String password,
-                                     String...authorities) {
-        return new User(username, password, authorities);
-    }
+public class User implements UserDetails {
 
     private final Collection<GrantedAuthority> authorities_;
     private final String password_;
     private final String username_;
-
     @SuppressWarnings("unchecked")
     private User(String username, String password) {
         this(username, password, Collections.EMPTY_LIST);
     }
 
     private User(String username, String password,
-                 String...authorities) {
+                 String... authorities) {
         username_ = username;
         password_ = password;
         authorities_ = AuthorityUtils.createAuthorityList(authorities);
@@ -42,6 +37,11 @@ public class User implements UserDetails {
         username_ = username;
         password_ = password;
         authorities_ = authorities;
+    }
+
+    public static UserDetails create(String username, String password,
+                                     String... authorities) {
+        return new User(username, password, authorities);
     }
 
     public Collection<GrantedAuthority> getAuthorities() {

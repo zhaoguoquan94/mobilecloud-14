@@ -1,7 +1,4 @@
-package org.magnum.mobilecloud.video.oauth;
-
-import java.io.File;
-import java.util.Arrays;
+package org.magnum.mobilecloud.video.auth;
 
 import org.apache.catalina.connector.Connector;
 import org.apache.coyote.http11.Http11NioProtocol;
@@ -32,28 +29,88 @@ import org.springframework.security.oauth2.config.annotation.web.configurers.Aut
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 
+import java.io.File;
+import java.util.Arrays;
+
 /**
- *	Configure this web application to use OAuth 2.0.
- *
- * 	The resource server is located at "/video", and can be accessed only by retrieving a token from "/oauth/token"
- *  using the Password Grant Flow as specified by OAuth 2.0.
- *
- *  Most of this code can be reused in other applications. The key methods that would definitely need to
- *  be changed are:
- *
- *  ResourceServer.configure(...) - update this method to apply the appropriate 
- *  set of scope requirements on client requests
- *
- *  OAuth2Config constructor - update this constructor to create a "real" (not hard-coded) UserDetailsService
- *  and ClientDetailsService for authentication. The current implementation should never be used in any
- *  type of production environment as these hard-coded credentials are highly insecure.
- *
- *  OAuth2SecurityConfiguration.containerCustomizer(...) - update this method to use a real keystore
- *  and certificate signed by a CA. This current version is highly insecure.
- *
+ * Configure this web application to use OAuth 2.0.
+ * <p/>
+ * The resource server is located at "/video", and can be accessed only by retrieving a token from "/oauth/token"
+ * using the Password Grant Flow as specified by OAuth 2.0.
+ * <p/>
+ * Most of this code can be reused in other applications. The key methods that would definitely need to
+ * be changed are:
+ * <p/>
+ * ResourceServer.configure(...) - update this method to apply the appropriate
+ * set of scope requirements on client requests
+ * <p/>
+ * OAuth2Config constructor - update this constructor to create a "real" (not hard-coded) UserDetailsService
+ * and ClientDetailsService for authentication. The current implementation should never be used in any
+ * type of production environment as these hard-coded credentials are highly insecure.
+ * <p/>
+ * OAuth2SecurityConfiguration.containerCustomizer(...) - update this method to use a real keystore
+ * and certificate signed by a CA. This current version is highly insecure.
  */
 @Configuration
 public class OAuth2SecurityConfiguration {
+
+    // This version uses the Tomcat web container and configures it to
+    // support HTTPS. The code below performs the configuration of Tomcat
+    // for HTTPS. Each web container has a different API for configuring
+    // HTTPS.
+    //
+    // The app now requires that you pass the location of the keystore and
+    // the password for your private key that you would like to setup HTTPS
+    // with. In Eclipse, you can set these options by going to:
+    //    1. Run->Run Configurations
+    //    2. Under Java Applications, select your run configuration for this app
+    //    3. Open the Arguments tab
+    //    4. In VM Arguments, provide the following information to use the
+    //       default keystore provided with the sample code:
+    //
+    //       -Dkeystore.file=src/main/resources/private/keystore -Dkeystore.pass=changeit
+    //
+    //    5. Note, this keystore is highly insecure! If you want more securtiy, you
+    //       should obtain a real SSL certificate:
+    //
+    //       http://tomcat.apache.org/tomcat-7.0-doc/ssl-howto.html
+    //
+    @Bean
+    EmbeddedServletContainerCustomizer containerCustomizer(
+            @Value("${keystore.file:src/main/resources/private/keystore}") String keystoreFile,
+            @Value("${keystore.pass:changeit}") final String keystorePass) throws Exception {
+
+        // If you were going to reuse this class in another
+        // application, this is one of the key sections that you
+        // would want to change
+
+        final String absoluteKeystoreFile = new File(keystoreFile).getAbsolutePath();
+
+        return new EmbeddedServletContainerCustomizer() {
+
+            @Override
+            public void customize(ConfigurableEmbeddedServletContainer container) {
+                TomcatEmbeddedServletContainerFactory tomcat = (TomcatEmbeddedServletContainerFactory) container;
+                tomcat.addConnectorCustomizers(
+                        new TomcatConnectorCustomizer() {
+                            @Override
+                            public void customize(Connector connector) {
+                                connector.setPort(8443);
+                                connector.setSecure(true);
+                                connector.setScheme("https");
+
+                                Http11NioProtocol proto = (Http11NioProtocol) connector.getProtocolHandler();
+                                proto.setSSLEnabled(true);
+                                proto.setKeystoreFile(absoluteKeystoreFile);
+                                proto.setKeystorePass(keystorePass);
+                                proto.setKeystoreType("JKS");
+                                proto.setKeyAlias("tomcat");
+                            }
+                        });
+
+            }
+        };
+    }
 
     // This first section of the configuration just makes sure that Spring Security picks
     // up the UserDetailsService that we create below.
@@ -72,8 +129,8 @@ public class OAuth2SecurityConfiguration {
     }
 
     /**
-     *	This method is used to configure who is allowed to access which parts of our
-     *	resource server (i.e. the "/video" endpoint)
+     * This method is used to configure who is allowed to access which parts of our
+     * resource server (i.e. the "/video" endpoint)
      */
     @Configuration
     @EnableResourceServer
@@ -129,7 +186,6 @@ public class OAuth2SecurityConfiguration {
         private ClientAndUserDetailsService combinedService_;
 
         /**
-         *
          * This constructor is used to setup the clients and users that will be able to login to the
          * system. This is a VERY insecure setup that is using hard-coded lists of clients / users /
          * passwords and should never be used for anything other than local testing
@@ -153,25 +209,14 @@ public class OAuth2SecurityConfiguration {
                     // video service
                     .withClient("mobile").authorizedGrantTypes("password")
                     .authorities("ROLE_CLIENT", "ROLE_TRUSTED_CLIENT")
-                    .scopes("read","write").resourceIds("video")
-                    .and()
-                            // Create a second client that only has "read" access to the
-                            // video service
-                    .withClient("mobileReader").authorizedGrantTypes("password")
-                    .authorities("ROLE_CLIENT")
-                    .scopes("read").resourceIds("video")
+                    .scopes("read", "write").resourceIds("video")
                     .accessTokenValiditySeconds(3600).and().build();
 
             // Create a series of hard-coded users.
             UserDetailsService svc = new InMemoryUserDetailsManager(
                     Arrays.asList(
                             User.create("admin", "pass", "ADMIN", "USER"),
-                            User.create("user0", "pass", "USER"),
-                            User.create("user1", "pass", "USER"),
-                            User.create("user2", "pass", "USER"),
-                            User.create("user3", "pass", "USER"),
-                            User.create("user4", "pass", "USER"),
-                            User.create("user5", "pass", "USER")));
+                            User.create("user0", "pass", "USER")));
 
             // Since clients have to use BASIC authentication with the client's id/secret,
             // when sending a request for a password grant, we make each client a user
@@ -217,65 +262,6 @@ public class OAuth2SecurityConfiguration {
             clients.withClientDetails(clientDetailsService());
         }
 
-    }
-
-
-    // This version uses the Tomcat web container and configures it to
-    // support HTTPS. The code below performs the configuration of Tomcat
-    // for HTTPS. Each web container has a different API for configuring
-    // HTTPS.
-    //
-    // The app now requires that you pass the location of the keystore and
-    // the password for your private key that you would like to setup HTTPS
-    // with. In Eclipse, you can set these options by going to:
-    //    1. Run->Run Configurations
-    //    2. Under Java Applications, select your run configuration for this app
-    //    3. Open the Arguments tab
-    //    4. In VM Arguments, provide the following information to use the
-    //       default keystore provided with the sample code:
-    //
-    //       -Dkeystore.file=src/main/resources/private/keystore -Dkeystore.pass=changeit
-    //
-    //    5. Note, this keystore is highly insecure! If you want more securtiy, you
-    //       should obtain a real SSL certificate:
-    //
-    //       http://tomcat.apache.org/tomcat-7.0-doc/ssl-howto.html
-    //
-    @Bean
-    EmbeddedServletContainerCustomizer containerCustomizer(
-            @Value("${keystore.file:src/main/resources/private/keystore}") String keystoreFile,
-            @Value("${keystore.pass:changeit}") final String keystorePass) throws Exception {
-
-        // If you were going to reuse this class in another
-        // application, this is one of the key sections that you
-        // would want to change
-
-        final String absoluteKeystoreFile = new File(keystoreFile).getAbsolutePath();
-
-        return new EmbeddedServletContainerCustomizer () {
-
-            @Override
-            public void customize(ConfigurableEmbeddedServletContainer container) {
-                TomcatEmbeddedServletContainerFactory tomcat = (TomcatEmbeddedServletContainerFactory) container;
-                tomcat.addConnectorCustomizers(
-                        new TomcatConnectorCustomizer() {
-                            @Override
-                            public void customize(Connector connector) {
-                                connector.setPort(8443);
-                                connector.setSecure(true);
-                                connector.setScheme("https");
-
-                                Http11NioProtocol proto = (Http11NioProtocol) connector.getProtocolHandler();
-                                proto.setSSLEnabled(true);
-                                proto.setKeystoreFile(absoluteKeystoreFile);
-                                proto.setKeystorePass(keystorePass);
-                                proto.setKeystoreType("JKS");
-                                proto.setKeyAlias("tomcat");
-                            }
-                        });
-
-            }
-        };
     }
 
 
